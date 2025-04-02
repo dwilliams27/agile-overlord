@@ -127,14 +127,29 @@ Important guidelines:
     // Add context about the current channel
     messages.push({
       role: 'system',
-      content: `You are currently in channel #${channelId}. Respond to the conversation naturally.`
+      content: `You are currently in channel #${channelId}. Respond to the conversation naturally.
+      
+When responding to messages, use the sendMessage tool with the replyToMessageId parameter set to the ID of the message you are replying to. This creates threaded conversations.`
     });
+    
+    // Find the latest message ID to potentially respond to
+    let latestMessageId: number | null = null;
+    if (recentMessages.length > 0) {
+      latestMessageId = recentMessages[0].id;
+    }
+    
+    if (latestMessageId) {
+      messages.push({
+        role: 'system',
+        content: `The latest message ID in this channel is ${latestMessageId}. You can respond to it by using the sendMessage tool with replyToMessageId=${latestMessageId}.`
+      });
+    }
     
     // Add recent messages
     for (const msg of recentMessages) {
       messages.push({
         role: msg.userId === this.id ? 'assistant' : 'user',
-        content: `${msg.user?.name || 'Unknown'}: ${msg.content}`,
+        content: `${msg.user?.name || 'Unknown'} (messageId: ${msg.id}): ${msg.content}`,
         timestamp: new Date(msg.createdAt)
       });
     }
