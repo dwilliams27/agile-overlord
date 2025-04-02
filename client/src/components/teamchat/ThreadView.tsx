@@ -28,7 +28,7 @@ const ThreadView: React.FC = () => {
   const currentThreadMessages = threadMessages[activeThread.id] || [];
   
   return (
-    <div className="w-96 border-l border-gray-200 flex flex-col h-full bg-white">
+    <div className="w-96 border-l border-gray-200 flex flex-col h-[calc(100vh-3rem)] bg-white">
       {/* Thread header */}
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h2 className="text-lg font-semibold">Thread</h2>

@@ -45,7 +45,7 @@ const MessageList: React.FC = () => {
   const channelMessages = activeChannel ? messages[activeChannel.id] || [] : [];
   
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-[calc(100vh-3rem)] bg-white">
       {/* Channel header */}
       <div className="px-4 py-3 border-b border-gray-200">
         <h2 className="text-lg font-semibold">#{activeChannel.name}</h2>

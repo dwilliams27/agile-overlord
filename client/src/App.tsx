@@ -4,7 +4,7 @@ import TeamChat from './components/teamchat/TeamChat'
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="h-screen w-full overflow-hidden bg-gray-100">
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/teamchat" element={<TeamChat />} />

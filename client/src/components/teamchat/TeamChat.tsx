@@ -22,14 +22,14 @@ const TeamChatContent: React.FC = () => {
   }, []);
   
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-screen w-full flex flex-col">
       <div className="h-12 bg-indigo-600 text-white flex items-center px-4 text-lg font-medium">
         TeamChat
       </div>
       
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-64 flex-shrink-0 flex flex-col bg-gray-800">
+        <div className="w-64 flex-shrink-0 flex flex-col bg-gray-800 h-[calc(100vh-3rem)]">
           <UserSelector />
           <div className="flex-1 overflow-hidden">
             <ChannelsList />
@@ -37,7 +37,7 @@ const TeamChatContent: React.FC = () => {
         </div>
         
         {/* Main content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden h-[calc(100vh-3rem)]">
           <div className="flex-1 overflow-hidden">
             <MessageList />
           </div>
