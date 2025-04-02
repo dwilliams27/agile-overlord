@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import apiRoutes from './api';
 
 const router = Router();
 
@@ -9,5 +10,8 @@ router.get('/', (req, res) => {
     version: '0.1.0',
   });
 });
+
+// Mount API routes
+router.use('/api', apiRoutes);
 
 export default router;

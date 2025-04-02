@@ -23,7 +23,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // Initialize database schema
 function initializeDatabase() {
-  // Create users table (for AI agents)
+  // Create users table (for both human users and AI agents)
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,17 +31,21 @@ function initializeDatabase() {
       role TEXT NOT NULL,
       personality TEXT,
       avatar TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      is_ai BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
-  // Create channels table (for slack-like communication)
+  // Create channels table (for TeamChat communication)
   db.run(`
     CREATE TABLE IF NOT EXISTS channels (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      is_private BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
@@ -52,9 +56,12 @@ function initializeDatabase() {
       channel_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       content TEXT NOT NULL,
+      thread_parent_id INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (channel_id) REFERENCES channels (id),
-      FOREIGN KEY (user_id) REFERENCES users (id)
+      FOREIGN KEY (user_id) REFERENCES users (id),
+      FOREIGN KEY (thread_parent_id) REFERENCES messages (id)
     )
   `);
 
