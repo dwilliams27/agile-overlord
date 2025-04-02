@@ -62,11 +62,36 @@ agile-overlord/
 ```
 
 ## Implementation Plan
-1. Set up basic project structure
-2. Initialize git repository
-3. Implement basic client/server architecture
-4. Create database schema
+1. Set up basic project structure ✅
+2. Initialize git repository ✅
+3. Implement basic client/server architecture ✅
+4. Create database schema ✅
 5. Develop AI agent system
 6. Implement simulated applications (Slack, Jira, GitHub)
 7. Integrate all components
 8. Test and refine
+
+## Configuration Notes
+
+### Port Configuration
+- Client: Running on port 3000
+- Server: Running on port 5001
+- API Endpoint: http://localhost:5001/api
+
+### Running the Application
+To start the server:
+```
+cd server
+npm run dev
+```
+
+To start the client:
+```
+cd client
+npm run dev
+```
+
+### JavaScript Module Formats
+- The project uses CommonJS module format for configuration files (postcss.config.js, tailwind.config.js)
+- The client uses ES modules for application code
+- The server uses CommonJS
