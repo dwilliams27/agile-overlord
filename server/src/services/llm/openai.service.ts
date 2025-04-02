@@ -99,20 +99,25 @@ export class OpenAIService implements LLMService {
       }));
       
       // Convert tools to OpenAI format
-      const openaiTools = tools.map(tool => ({
-        type: 'function' as const,
-        function: {
-          name: tool.name,
-          description: tool.description,
-          parameters: {
-            type: 'object',
-            properties: tool.parameters,
-            required: Object.entries(tool.parameters)
-              .filter(([_, param]) => param.required)
-              .map(([name]) => name)
+      const openaiTools = tools.map(tool => {
+        // Extract required parameter names
+        const requiredParams = Object.entries(tool.parameters)
+          .filter(([_, param]) => param.required)
+          .map(([name]) => name);
+        
+        return {
+          type: 'function' as const,
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: {
+              type: 'object',
+              properties: tool.parameters,
+              required: requiredParams.length > 0 ? requiredParams : undefined
+            }
           }
-        }
-      }));
+        };
+      });
       
       logger.info('Making OpenAI API request', {
         model: options.user === 'debug' ? 'gpt-3.5-turbo' : this.defaultModel,
@@ -127,7 +132,12 @@ export class OpenAIService implements LLMService {
           contentLength: m.content?.length || 0,
           content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
         })),
-        tools: openaiTools.map(t => t.function.name)
+        tools: openaiTools.map(t => ({
+          name: t.function.name,
+          description: t.function.description.substring(0, 50) + (t.function.description.length > 50 ? '...' : ''),
+          parameters: t.function.parameters,
+          requiredParams: t.function.parameters.required
+        }))
       });
       
       const chatCompletion = await this.client.chat.completions.create({

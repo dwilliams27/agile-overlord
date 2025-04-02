@@ -16,20 +16,17 @@ export class MessageTool implements Tool {
   
   parameters: Record<string, ToolParameter> = {
     channelId: {
-      name: 'channelId',
-      type: 'number',
+      type: 'integer',
       description: 'The ID of the channel to send the message to',
       required: true
     },
     content: {
-      name: 'content',
       type: 'string',
       description: 'The content of the message to send',
       required: true
     },
     replyToMessageId: {
-      name: 'replyToMessageId',
-      type: 'number',
+      type: 'integer',
       description: 'The ID of the message to reply to (for thread replies)',
       required: false
     }

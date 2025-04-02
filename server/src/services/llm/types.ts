@@ -36,13 +36,13 @@ export interface ChatOptions extends CompletionOptions {
 }
 
 export interface ToolParameter {
-  name: string;
-  type: string;
+  type: string; // string, number, integer, boolean, object, array
   description: string;
-  required: boolean;
-  enum?: string[];
+  required?: boolean; // Only used internally, not sent to OpenAI
+  enum?: string[] | number[];
   properties?: Record<string, ToolParameter>;
   items?: ToolParameter;
+  format?: string; // For additional format hints like date-time, email, etc.
 }
 
 export interface Tool {
