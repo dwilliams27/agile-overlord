@@ -86,12 +86,8 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ onClose }) => {
         description: formValues.description,
         status: formValues.status,
         priority: formValues.priority,
-        type: formValues.type,
         assigneeId: formValues.assigneeId ? parseInt(formValues.assigneeId) : null,
-        reporterId: currentUser.id,
-        dueDate: null,
-        storyPoints: formValues.storyPoints ? parseInt(formValues.storyPoints) : null,
-        sprintId: null
+        createdBy: currentUser.id
       });
       
       console.log('Ticket created successfully:', ticket);

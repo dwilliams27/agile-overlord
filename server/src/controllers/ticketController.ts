@@ -63,9 +63,9 @@ export const createTicket = async (req: Request, res: Response) => {
     } = req.body;
     
     // Validate required fields
-    if (!title || !status || !priority || !type || !reporterId) {
+    if (!title || !status || !priority || !reporterId) {
       return res.status(400).json({ 
-        error: 'Title, status, priority, type, and reporter ID are required' 
+        error: 'Title, status, priority, and reporter ID are required' 
       });
     }
     
@@ -92,12 +92,8 @@ export const createTicket = async (req: Request, res: Response) => {
       description: description || '',
       status: status as TicketStatus,
       priority: priority as TicketPriority,
-      type: type as TicketType,
       assigneeId: assigneeId || null,
-      reporterId,
-      dueDate: parsedDueDate,
-      storyPoints: storyPoints || null,
-      sprintId: sprintId || null
+      createdBy: reporterId
     });
     
     // Emit a socket event for the new ticket
@@ -148,11 +144,7 @@ export const updateTicket = async (req: Request, res: Response) => {
       description,
       status: status as TicketStatus,
       priority: priority as TicketPriority,
-      type: type as TicketType,
-      assigneeId,
-      dueDate: parsedDueDate,
-      storyPoints,
-      sprintId
+      assigneeId
     });
     
     // Emit a socket event for the updated ticket

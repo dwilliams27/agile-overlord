@@ -264,13 +264,13 @@ const TicketDetailsSidebar: React.FC<TicketDetailsSidebarProps> = ({ ticket, onC
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Reporter</h3>
-                  {ticket.reporter ? (
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Created by</h3>
+                  {ticket.creator ? (
                     <div className="flex items-center">
                       <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-white text-xs mr-2">
-                        {ticket.reporter.name.charAt(0)}
+                        {ticket.creator.name.charAt(0)}
                       </div>
-                      <span>{ticket.reporter.name}</span>
+                      <span>{ticket.creator.name}</span>
                     </div>
                   ) : (
                     <p>Unknown</p>

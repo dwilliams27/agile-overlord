@@ -34,16 +34,13 @@ export interface Ticket {
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
-  type: TicketType;
+  type?: TicketType;
   assigneeId: number | null;
-  reporterId: number;
+  createdBy: number;
   createdAt: string;
   updatedAt: string;
-  dueDate: string | null;
-  storyPoints: number | null;
-  sprintId: number | null;
   assignee?: User;
-  reporter?: User;
+  creator?: User;
 }
 
 export interface Comment {
@@ -267,10 +264,15 @@ export const TaskLordProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   const createTicket = useCallback(async (ticket: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const response = await axios.post(`${API_URL}/api/tickets`, ticket);
+      console.log('Sending ticket to API:', ticket);
+      const response = await axios.post(`${API_URL}/api/tickets`, {
+        ...ticket,
+        reporterId: ticket.createdBy // Map to what controller expects
+      });
       return response.data;
     } catch (error) {
       console.error('Error creating ticket:', error);
+      console.error('Error response:', error.response?.data);
       throw error;
     }
   }, [API_URL]);

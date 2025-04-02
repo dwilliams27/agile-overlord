@@ -68,21 +68,21 @@ export interface Ticket {
   description: string;
   status: TicketStatus;
   priority: TicketPriority;
-  type: TicketType;
+  type?: TicketType; // Optional to match existing schema
   assigneeId: number | null;
-  reporterId: number;
+  createdBy: number; // Using createdBy instead of reporterId
   createdAt: Date;
   updatedAt: Date;
-  dueDate: Date | null;
-  storyPoints: number | null;
-  sprintId: number | null;
+  dueDate?: Date | null; // Optional to match existing schema
+  storyPoints?: number | null; // Optional to match existing schema
+  sprintId?: number | null; // Optional to match existing schema
   assignee?: {
     id: number;
     name: string;
     role: string;
     isAI: boolean;
   };
-  reporter?: {
+  creator?: { // Using creator instead of reporter
     id: number;
     name: string;
     role: string;
@@ -126,10 +126,10 @@ class TicketModel {
       const tickets = await dbAll(
         `SELECT t.*, 
                 a.id as assignee_id, a.name as assignee_name, a.role as assignee_role, a.is_ai as assignee_is_ai,
-                r.id as reporter_id, r.name as reporter_name, r.role as reporter_role, r.is_ai as reporter_is_ai
+                c.id as creator_id, c.name as creator_name, c.role as creator_role, c.is_ai as creator_is_ai
          FROM tickets t
          LEFT JOIN users a ON t.assignee_id = a.id
-         LEFT JOIN users r ON t.reporter_id = r.id
+         LEFT JOIN users c ON t.created_by = c.id
          ${whereClause}
          ORDER BY t.updated_at DESC`,
         params
@@ -147,10 +147,10 @@ class TicketModel {
       const ticket = await dbGet(
         `SELECT t.*, 
                 a.id as assignee_id, a.name as assignee_name, a.role as assignee_role, a.is_ai as assignee_is_ai,
-                r.id as reporter_id, r.name as reporter_name, r.role as reporter_role, r.is_ai as reporter_is_ai
+                c.id as creator_id, c.name as creator_name, c.role as creator_role, c.is_ai as creator_is_ai
          FROM tickets t
          LEFT JOIN users a ON t.assignee_id = a.id
-         LEFT JOIN users r ON t.reporter_id = r.id
+         LEFT JOIN users c ON t.created_by = c.id
          WHERE t.id = ?`,
         [id]
       );
@@ -190,20 +190,16 @@ class TicketModel {
     try {
       const result = await dbRun(
         `INSERT INTO tickets (
-          title, description, status, priority, type, 
-          assignee_id, reporter_id, due_date, story_points, sprint_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          title, description, status, priority, 
+          assignee_id, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
         [
           ticket.title,
           ticket.description,
           ticket.status,
           ticket.priority,
-          ticket.type,
           ticket.assigneeId,
-          ticket.reporterId,
-          ticket.dueDate ? ticket.dueDate.toISOString() : null,
-          ticket.storyPoints,
-          ticket.sprintId
+          ticket.createdBy
         ]
       );
       
@@ -245,29 +241,9 @@ class TicketModel {
         values.push(ticket.priority);
       }
       
-      if (ticket.type !== undefined) {
-        updateFields.push('type = ?');
-        values.push(ticket.type);
-      }
-      
       if (ticket.assigneeId !== undefined) {
         updateFields.push('assignee_id = ?');
         values.push(ticket.assigneeId);
-      }
-      
-      if (ticket.dueDate !== undefined) {
-        updateFields.push('due_date = ?');
-        values.push(ticket.dueDate ? ticket.dueDate.toISOString() : null);
-      }
-      
-      if (ticket.storyPoints !== undefined) {
-        updateFields.push('story_points = ?');
-        values.push(ticket.storyPoints);
-      }
-      
-      if (ticket.sprintId !== undefined) {
-        updateFields.push('sprint_id = ?');
-        values.push(ticket.sprintId);
       }
       
       // Always update the updated_at timestamp
@@ -323,14 +299,10 @@ class TicketModel {
       description: dbTicket.description,
       status: dbTicket.status as TicketStatus,
       priority: dbTicket.priority as TicketPriority,
-      type: dbTicket.type as TicketType,
       assigneeId: dbTicket.assignee_id,
-      reporterId: dbTicket.reporter_id,
+      createdBy: dbTicket.created_by,
       createdAt: new Date(dbTicket.created_at),
-      updatedAt: new Date(dbTicket.updated_at),
-      dueDate: dbTicket.due_date ? new Date(dbTicket.due_date) : null,
-      storyPoints: dbTicket.story_points,
-      sprintId: dbTicket.sprint_id
+      updatedAt: new Date(dbTicket.updated_at)
     };
     
     // Add assignee info if available
@@ -343,13 +315,13 @@ class TicketModel {
       };
     }
     
-    // Add reporter info if available
-    if (dbTicket.reporter_name) {
-      ticket.reporter = {
-        id: dbTicket.reporter_id,
-        name: dbTicket.reporter_name,
-        role: dbTicket.reporter_role,
-        isAI: Boolean(dbTicket.reporter_is_ai)
+    // Add creator info if available
+    if (dbTicket.creator_name) {
+      ticket.creator = {
+        id: dbTicket.creator_id,
+        name: dbTicket.creator_name,
+        role: dbTicket.creator_role,
+        isAI: Boolean(dbTicket.creator_is_ai)
       };
     }
     
