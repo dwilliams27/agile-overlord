@@ -105,18 +105,33 @@ export class OpenAIService implements LLMService {
           .filter(([_, param]) => param.required)
           .map(([name]) => name);
         
-        return {
+        // Create clean parameter objects without the 'required' property
+        const cleanedParameters: Record<string, any> = {};
+        Object.entries(tool.parameters).forEach(([name, param]) => {
+          // Omit the 'required' property from each parameter
+          const { required, ...paramWithoutRequired } = param;
+          cleanedParameters[name] = paramWithoutRequired;
+        });
+        
+        const functionDef = {
           type: 'function' as const,
           function: {
             name: tool.name,
             description: tool.description,
             parameters: {
               type: 'object',
-              properties: tool.parameters,
+              properties: cleanedParameters,
               required: requiredParams.length > 0 ? requiredParams : undefined
             }
           }
         };
+        
+        // Log the full function definition for the first tool to help debug
+        if (tool.name === 'sendMessage') {
+          logger.info('Full sendMessage tool definition', JSON.stringify(functionDef, null, 2));
+        }
+        
+        return functionDef;
       });
       
       logger.info('Making OpenAI API request', {
