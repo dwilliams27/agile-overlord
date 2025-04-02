@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import MessageModel, { Message } from '../models/Message';
 import ChannelModel from '../models/Channel';
 import UserModel from '../models/User';
+import logger from '../utils/logger';
 
 export const getChannelMessages = async (req: Request, res: Response) => {
   try {
@@ -76,8 +77,14 @@ export const createMessage = async (req: Request, res: Response) => {
       const messageWithUser = { ...newMessage, user };
       io.emit('message:new', messageWithUser);
       
-      // Also emit message:created event for AI agents to respond to
-      io.emit('message:created', messageWithUser);
+      // Also directly trigger the agent manager to respond to this message
+      const agentManager = req.app.get('agentManager');
+      if (agentManager) {
+        logger.info('Directly triggering agent response via agentManager', { messageId: newMessage.id });
+        agentManager.handleIncomingMessage(messageWithUser);
+      } else {
+        logger.warn('Agent manager not available on request object');
+      }
     }
     
     res.status(201).json(newMessage);
@@ -121,8 +128,14 @@ export const createThreadMessage = async (req: Request, res: Response) => {
       const messageWithUser = { ...newThreadMessage, parentMessageId: messageId, user };
       io.emit('thread:new', messageWithUser);
       
-      // Also emit message:created event for AI agents to respond to
-      io.emit('message:created', { ...messageWithUser, channelId: parentMessage.channelId });
+      // Also directly trigger the agent manager to respond to this message
+      const agentManager = req.app.get('agentManager');
+      if (agentManager) {
+        logger.info('Directly triggering agent response via agentManager', { messageId: newThreadMessage.id });
+        agentManager.handleIncomingMessage({ ...messageWithUser, channelId: parentMessage.channelId });
+      } else {
+        logger.warn('Agent manager not available on request object');
+      }
     }
     
     res.status(201).json(newThreadMessage);

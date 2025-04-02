@@ -7,6 +7,7 @@ import {
   ToolResponse
 } from './types';
 import OpenAI from 'openai';
+import logger from '../../utils/logger';
 
 /**
  * OpenAI LLM service implementation
@@ -16,8 +17,15 @@ export class OpenAIService implements LLMService {
   private defaultModel: string;
   
   constructor(apiKey: string, defaultModel = 'gpt-4o') {
+    if (!apiKey) {
+      const error = new Error('OpenAI API key is required');
+      logger.error('Failed to initialize OpenAI service:', error);
+      throw error;
+    }
+    
     this.client = new OpenAI({ apiKey });
     this.defaultModel = defaultModel;
+    logger.info(`OpenAI service initialized with model ${defaultModel}`);
   }
   
   /**
@@ -78,6 +86,11 @@ export class OpenAIService implements LLMService {
    */
   async requestWithTools(messages: Message[], tools: Tool[], options: ChatOptions = {}): Promise<ToolResponse> {
     try {
+      logger.info('Preparing OpenAI request with tools', {
+        messageCount: messages.length,
+        toolCount: tools.length
+      });
+      
       const openaiMessages = messages.map(msg => ({
         role: msg.role as any,
         content: msg.content,
@@ -100,6 +113,22 @@ export class OpenAIService implements LLMService {
           }
         }
       }));
+      
+      logger.info('Making OpenAI API request', {
+        model: options.user === 'debug' ? 'gpt-3.5-turbo' : this.defaultModel,
+        temperature: options.temperature || 0.7,
+        toolCount: openaiTools.length,
+        messageCount: openaiMessages.length
+      });
+      
+      logger.debug('OpenAI request details', {
+        messages: openaiMessages.map(m => ({
+          role: m.role,
+          contentLength: m.content?.length || 0,
+          content: m.content?.substring(0, 100) + (m.content?.length > 100 ? '...' : '')
+        })),
+        tools: openaiTools.map(t => t.function.name)
+      });
       
       const chatCompletion = await this.client.chat.completions.create({
         model: options.user === 'debug' ? 'gpt-3.5-turbo' : this.defaultModel,
@@ -124,12 +153,24 @@ export class OpenAIService implements LLMService {
         arguments: JSON.parse(tc.function.arguments)
       })) || [];
       
+      logger.info('OpenAI API response received', {
+        hasContent: !!response.content,
+        contentLength: response.content?.length || 0,
+        toolCallCount: toolCalls.length
+      });
+      
+      if (toolCalls.length > 0) {
+        logger.info('Tool calls in response', {
+          tools: toolCalls.map(tc => tc.name)
+        });
+      }
+      
       return {
         completion: response.content,
         toolCalls
       };
     } catch (error) {
-      console.error('Error requesting tool-based completion from OpenAI:', error);
+      logger.error('Error requesting tool-based completion from OpenAI:', error);
       throw new Error(`OpenAI tool request failed: ${error.message}`);
     }
   }

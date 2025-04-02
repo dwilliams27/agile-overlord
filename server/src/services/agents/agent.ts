@@ -1,6 +1,7 @@
 import { LLMFactory } from '../llm/llm.factory';
 import { LLMConfig, Message, Tool, ToolResponse } from '../llm/types';
 import { MessageTool } from '../llm/tools/message.tool';
+import logger from '../../utils/logger';
 
 export interface AgentConfig {
   id: number;
@@ -51,7 +52,17 @@ export class Agent {
       lastActivity: new Date()
     };
     this.memory = [];
-    this.llmService = LLMFactory.getLLMService(this.llmConfig);
+    
+    try {
+      this.llmService = LLMFactory.getLLMService(this.llmConfig);
+      logger.info(`Created LLM service for agent ${this.name}`, {
+        provider: this.llmConfig.provider || 'default',
+        model: this.llmConfig.model || 'default'
+      });
+    } catch (error) {
+      logger.error(`Failed to create LLM service for agent ${this.name}:`, error);
+      throw error;
+    }
   }
   
   /**
@@ -177,16 +188,37 @@ Important guidelines:
    */
   async takeAction(channelId: number, messages: any[]): Promise<ToolResponse> {
     try {
-      const context = this.buildConversationContext(channelId, messages);
-      const tools = this.getTools();
+      logger.info(`Agent ${this.name} taking action in channel ${channelId}`);
       
+      const context = this.buildConversationContext(channelId, messages);
+      logger.debug(`Built conversation context for agent ${this.name}`, {
+        contextLength: context.length,
+        lastMessageContent: context[context.length - 1]?.content?.substring(0, 100)
+      });
+      
+      const tools = this.getTools();
+      logger.info(`Using ${tools.length} tools for agent ${this.name}`, {
+        toolNames: tools.map(t => t.name)
+      });
+      
+      logger.info(`Requesting LLM response for agent ${this.name}`);
       const response = await this.llmService.requestWithTools(context, tools);
+      logger.info(`Received LLM response for agent ${this.name}`, {
+        hasCompletion: !!response.completion,
+        toolCallsCount: response.toolCalls.length,
+        completion: response.completion?.substring(0, 100) + (response.completion?.length > 100 ? '...' : '')
+      });
       
       // Execute tool calls if any
       for (const toolCall of response.toolCalls) {
         const tool = tools.find(t => t.name === toolCall.name);
         if (tool) {
+          logger.info(`Executing tool ${toolCall.name} for agent ${this.name}`, {
+            arguments: toolCall.arguments
+          });
+          
           const result = await tool.execute(toolCall.arguments);
+          logger.info(`Tool ${toolCall.name} execution result for agent ${this.name}`, result);
           
           // Add tool execution to memory
           this.addMemory({
@@ -194,6 +226,8 @@ Important guidelines:
             content: `Used tool ${toolCall.name} with result: ${JSON.stringify(result)}`,
             metadata: { toolCall, result }
           });
+        } else {
+          logger.warn(`Tool ${toolCall.name} not found for agent ${this.name}`);
         }
       }
       
@@ -202,7 +236,7 @@ Important guidelines:
       
       return response;
     } catch (error) {
-      console.error(`Error executing action for agent ${this.name}:`, error);
+      logger.error(`Error executing action for agent ${this.name}:`, error);
       return {
         completion: `[Error executing action: ${error.message}]`,
         toolCalls: []

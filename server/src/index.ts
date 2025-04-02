@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import routes from './routes';
 import db from './utils/db';
 import { AgentManager } from './services/agents/agent.manager';
+import logger from './utils/logger';
 
 // Load environment variables
 dotenv.config();
@@ -24,8 +25,9 @@ const io = new SocketIOServer(server, {
   },
 });
 
-// Make io accessible to our routes
+// Make io and agentManager accessible to our routes
 app.set('io', io);
+app.set('agentManager', agentManager);
 
 // Middleware
 app.use(cors());
@@ -40,15 +42,16 @@ app.get('/health', (req, res) => {
 });
 
 // Create agent manager instance
+logger.info('Creating agent manager instance');
 const agentManager = new AgentManager();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('A user connected', socket.id);
+  logger.info('A user connected', { socketId: socket.id });
 
   // Set up user online status
   socket.on('user:online', (userId) => {
-    console.log(`User ${userId} is online`);
+    logger.info(`User ${userId} is online`, { socketId: socket.id });
     socket.broadcast.emit('user:online', userId);
   });
 
@@ -59,22 +62,42 @@ io.on('connection', (socket) => {
 
   // Handle joining channels
   socket.on('channel:join', (channelId) => {
+    logger.info(`Socket ${socket.id} joining channel ${channelId}`);
     socket.join(`channel:${channelId}`);
   });
 
   // Handle leaving channels
   socket.on('channel:leave', (channelId) => {
+    logger.info(`Socket ${socket.id} leaving channel ${channelId}`);
     socket.leave(`channel:${channelId}`);
   });
   
   // Listen for new messages to trigger AI agent responses
   socket.on('message:created', (message) => {
+    logger.info(`Received message:created event on socket ${socket.id}`, {
+      messageId: message?.id,
+      userId: message?.userId,
+      channelId: message?.channelId
+    });
+    
+    // Forward to agent manager to handle AI responses
+    agentManager.handleIncomingMessage(message);
+  });
+  
+  // Also listen for message:new events (these come from the messageController)
+  socket.on('message:new', (message) => {
+    logger.info(`Received message:new event on socket ${socket.id}`, {
+      messageId: message?.id,
+      userId: message?.userId,
+      channelId: message?.channelId
+    });
+    
     // Forward to agent manager to handle AI responses
     agentManager.handleIncomingMessage(message);
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected', socket.id);
+    logger.info('User disconnected', { socketId: socket.id });
   });
 });
 
@@ -147,16 +170,32 @@ const seedInitialData = async () => {
 
 // Start server
 server.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-  await seedInitialData();
+  logger.info(`Server running on port ${PORT}`);
   
-  // Initialize the agent manager
-  agentManager.setIO(io);
-  
-  setTimeout(async () => {
-    await agentManager.initialize();
-    console.log('AI agent system initialized');
-  }, 2000);
+  try {
+    // Initialize database with seed data
+    logger.info('Seeding initial data');
+    await seedInitialData();
+    logger.info('Initial data seeded successfully');
+    
+    // Initialize the agent manager
+    logger.info('Setting IO instance on agent manager');
+    agentManager.setIO(io);
+    
+    // Add a delay to ensure database operations are complete
+    logger.info('Waiting for database operations to complete before initializing agents');
+    setTimeout(async () => {
+      try {
+        logger.info('Initializing AI agent system');
+        await agentManager.initialize();
+        logger.info('AI agent system initialized successfully');
+      } catch (error) {
+        logger.error('Failed to initialize AI agent system:', error);
+      }
+    }, 2000);
+  } catch (error) {
+    logger.error('Error during server startup:', error);
+  }
 });
 
 export { app, server, io };
