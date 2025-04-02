@@ -27,9 +27,10 @@ const MessageList: React.FC = () => {
   }, []);
   
   useEffect(() => {
-    // Scroll to bottom when messages change
+    // Scroll to bottom when messages change to show the newest messages
     if (channelId && messages[channelId]) {
-      scrollToBottom();
+      // Short delay to ensure DOM is updated
+      setTimeout(scrollToBottom, 100);
     }
   }, [channelId, messages, scrollToBottom]);
   

@@ -104,7 +104,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleNewMessage = useCallback((message: Message) => {
     setMessages(prevMessages => {
       const channelMessages = [...(prevMessages[message.channelId] || [])];
-      channelMessages.unshift(message); // Add to beginning of array
+      channelMessages.push(message); // Add to end of array for chronological order
       
       return {
         ...prevMessages,
