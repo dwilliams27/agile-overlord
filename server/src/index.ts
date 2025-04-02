@@ -25,9 +25,8 @@ const io = new SocketIOServer(server, {
   },
 });
 
-// Make io and agentManager accessible to our routes
+// Make io accessible to our routes
 app.set('io', io);
-app.set('agentManager', agentManager);
 
 // Middleware
 app.use(cors());
@@ -41,9 +40,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP' });
 });
 
-// Create agent manager instance
-logger.info('Creating agent manager instance');
-const agentManager = new AgentManager();
+// Create agent manager instance after Express app is set up
+let agentManager: AgentManager;
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -81,7 +79,12 @@ io.on('connection', (socket) => {
     });
     
     // Forward to agent manager to handle AI responses
-    agentManager.handleIncomingMessage(message);
+    const agentMgr = app.get('agentManager');
+    if (agentMgr) {
+      agentMgr.handleIncomingMessage(message);
+    } else {
+      logger.warn('Agent manager not available for message:created event');
+    }
   });
   
   // Also listen for message:new events (these come from the messageController)
@@ -93,7 +96,12 @@ io.on('connection', (socket) => {
     });
     
     // Forward to agent manager to handle AI responses
-    agentManager.handleIncomingMessage(message);
+    const agentMgr = app.get('agentManager');
+    if (agentMgr) {
+      agentMgr.handleIncomingMessage(message);
+    } else {
+      logger.warn('Agent manager not available for message:new event');
+    }
   });
 
   socket.on('disconnect', () => {
@@ -178,7 +186,14 @@ server.listen(PORT, async () => {
     await seedInitialData();
     logger.info('Initial data seeded successfully');
     
-    // Initialize the agent manager
+    // Create and initialize the agent manager
+    logger.info('Creating agent manager instance');
+    agentManager = new AgentManager();
+    
+    // Make agentManager available to our routes after it's initialized
+    app.set('agentManager', agentManager);
+    
+    // Set up IO instance on agent manager
     logger.info('Setting IO instance on agent manager');
     agentManager.setIO(io);
     
