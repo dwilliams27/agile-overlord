@@ -1,10 +1,41 @@
 import db from '../utils/db';
-import { promisify } from 'util';
 
-// Convert db methods to use promises
-const dbAll = promisify(db.all.bind(db));
-const dbGet = promisify(db.get.bind(db));
-const dbRun = promisify(db.run.bind(db));
+// Wrap db methods in promises
+const dbAll = (sql: string, params: any[] = []): Promise<any[]> => {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
+    });
+  });
+};
+
+const dbGet = (sql: string, params: any[] = []): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+};
+
+const dbRun = (sql: string, params: any[] = []): Promise<{ lastID: number; changes: number }> => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({ lastID: this.lastID, changes: this.changes });
+      }
+    });
+  });
+};
 
 export interface Message {
   id: number;
@@ -21,7 +52,7 @@ class MessageModel {
     const messages = await dbAll(
       `SELECT * FROM messages 
        WHERE channel_id = ? AND thread_parent_id IS NULL
-       ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+       ORDER BY created_at ASC LIMIT ? OFFSET ?`,
       [channelId, limit, offset]
     );
     return messages.map(this.mapMessageFromDB);

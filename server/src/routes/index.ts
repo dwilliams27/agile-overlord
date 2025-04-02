@@ -11,7 +11,7 @@ router.get('/', (req, res) => {
   });
 });
 
-// Mount API routes
+// API routes mounted directly at /api
 router.use('/api', apiRoutes);
 
 export default router;

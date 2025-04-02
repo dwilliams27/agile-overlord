@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import routes from './routes';
 import db from './utils/db';
-import aiAgentService from './services/aiAgentService';
+import { AgentManager } from './services/agents/agent.manager';
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +39,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP' });
 });
 
+// Create agent manager instance
+const agentManager = new AgentManager();
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('A user connected', socket.id);
@@ -63,6 +66,12 @@ io.on('connection', (socket) => {
   socket.on('channel:leave', (channelId) => {
     socket.leave(`channel:${channelId}`);
   });
+  
+  // Listen for new messages to trigger AI agent responses
+  socket.on('message:created', (message) => {
+    // Forward to agent manager to handle AI responses
+    agentManager.handleIncomingMessage(message);
+  });
 
   socket.on('disconnect', () => {
     console.log('User disconnected', socket.id);
@@ -77,77 +86,58 @@ const seedInitialData = async () => {
     const UserModel = (await import('./models/User')).default;
     
     // Check and seed channels
-    const channels = await new Promise<any[]>((resolve, reject) => {
-      db.all('SELECT * FROM channels', [], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    const channels = await ChannelModel.getAll();
     
     if (channels.length === 0) {
       console.log('No channels found, creating default channels');
       
       // Create default channels
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO channels (name, description) VALUES (?, ?)', 
-          ['general', 'General discussion'], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await ChannelModel.create({
+        name: 'general',
+        description: 'General discussion',
+        isPrivate: false
       });
       
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO channels (name, description) VALUES (?, ?)', 
-          ['random', 'Random topics'], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await ChannelModel.create({
+        name: 'random',
+        description: 'Random topics',
+        isPrivate: false
       });
     }
     
     // Check and seed users
-    const users = await new Promise<any[]>((resolve, reject) => {
-      db.all('SELECT * FROM users', [], (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows || []);
-      });
-    });
+    const users = await UserModel.getAll();
     
     if (users.length === 0) {
       console.log('No users found, creating admin user and AI agents');
       
       // Create admin user
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO users (name, role, is_ai) VALUES (?, ?, ?)', 
-          ['Admin', 'admin', 0], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await UserModel.create({
+        name: 'Admin',
+        role: 'admin',
+        isAI: false
       });
       
       // Create some AI agents
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO users (name, role, personality, is_ai) VALUES (?, ?, ?, ?)', 
-          ['StanBot', 'Engineer', 'Extremely serious about code quality', 1], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await UserModel.create({
+        name: 'StanBot',
+        role: 'Engineer',
+        personality: 'Extremely serious about code quality',
+        isAI: true
       });
       
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO users (name, role, personality, is_ai) VALUES (?, ?, ?, ?)', 
-          ['GingerBot', 'Designer', 'Passionate about UX and aesthetics', 1], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await UserModel.create({
+        name: 'GingerBot',
+        role: 'Designer',
+        personality: 'Passionate about UX and aesthetics',
+        isAI: true
       });
       
-      await new Promise<void>((resolve, reject) => {
-        db.run('INSERT INTO users (name, role, personality, is_ai) VALUES (?, ?, ?, ?)', 
-          ['CasualBot', 'Junior Developer', 'Relaxed and sometimes unfocused', 1], (err) => {
-            if (err) reject(err);
-            else resolve();
-          });
+      await UserModel.create({
+        name: 'CasualBot',
+        role: 'Junior Developer',
+        personality: 'Relaxed and sometimes unfocused',
+        isAI: true
       });
     }
   } catch (error) {
@@ -160,9 +150,12 @@ server.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   await seedInitialData();
   
-  // Initialize AI agent service after database is seeded
-  setTimeout(() => {
-    aiAgentService.initialize(io);
+  // Initialize the agent manager
+  agentManager.setIO(io);
+  
+  setTimeout(async () => {
+    await agentManager.initialize();
+    console.log('AI agent system initialized');
   }, 2000);
 });
 

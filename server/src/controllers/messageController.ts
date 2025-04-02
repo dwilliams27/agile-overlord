@@ -73,7 +73,11 @@ export const createMessage = async (req: Request, res: Response) => {
     // Emit a socket event for the new message
     const io = req.app.get('io');
     if (io) {
-      io.emit('message:new', { ...newMessage, user });
+      const messageWithUser = { ...newMessage, user };
+      io.emit('message:new', messageWithUser);
+      
+      // Also emit message:created event for AI agents to respond to
+      io.emit('message:created', messageWithUser);
     }
     
     res.status(201).json(newMessage);
@@ -114,7 +118,11 @@ export const createThreadMessage = async (req: Request, res: Response) => {
     // Emit a socket event for the new thread message
     const io = req.app.get('io');
     if (io) {
-      io.emit('thread:new', { ...newThreadMessage, parentMessageId: messageId, user });
+      const messageWithUser = { ...newThreadMessage, parentMessageId: messageId, user };
+      io.emit('thread:new', messageWithUser);
+      
+      // Also emit message:created event for AI agents to respond to
+      io.emit('message:created', { ...messageWithUser, channelId: parentMessage.channelId });
     }
     
     res.status(201).json(newThreadMessage);
