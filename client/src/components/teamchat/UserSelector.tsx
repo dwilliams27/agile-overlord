@@ -10,7 +10,8 @@ const UserSelector: React.FC = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await axios.get('/api/users');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const response = await axios.get(`${API_URL}/api/users`);
         setUsers(response.data);
         
         // Set first non-AI user as current user if none selected
@@ -28,7 +29,7 @@ const UserSelector: React.FC = () => {
     };
     
     fetchUsers();
-  }, []);
+  }, [currentUser, setCurrentUser]);
   
   const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const userId = parseInt(e.target.value);

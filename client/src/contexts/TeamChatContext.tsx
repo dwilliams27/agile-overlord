@@ -136,11 +136,14 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setChannels(prevChannels => [...prevChannels, channel]);
   }, []);
   
+  // API URL
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  
   // API calls
   const fetchChannels = async () => {
     setLoadingChannels(true);
     try {
-      const response = await axios.get('/api/channels');
+      const response = await axios.get(`${API_URL}/api/channels`);
       setChannels(response.data);
       
       // Set first channel as active if none is set
@@ -157,7 +160,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchMessages = async (channelId: number) => {
     setLoadingMessages(true);
     try {
-      const response = await axios.get(`/api/channels/${channelId}/messages`);
+      const response = await axios.get(`${API_URL}/api/channels/${channelId}/messages`);
       setMessages(prev => ({
         ...prev,
         [channelId]: response.data
@@ -172,7 +175,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const fetchThreadMessages = async (messageId: number) => {
     setLoadingThreadMessages(true);
     try {
-      const response = await axios.get(`/api/messages/${messageId}/thread`);
+      const response = await axios.get(`${API_URL}/api/messages/${messageId}/thread`);
       setThreadMessages(prev => ({
         ...prev,
         [messageId]: response.data
@@ -190,7 +193,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       if (threadParentId) {
         // Send thread message
-        const response = await axios.post(`/api/messages/${threadParentId}/thread`, {
+        await axios.post(`${API_URL}/api/messages/${threadParentId}/thread`, {
           userId: currentUser.id,
           content
         });
@@ -199,7 +202,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fetchThreadMessages(threadParentId);
       } else {
         // Send channel message
-        const response = await axios.post(`/api/channels/${channelId}/messages`, {
+        await axios.post(`${API_URL}/api/channels/${channelId}/messages`, {
           userId: currentUser.id,
           content
         });
