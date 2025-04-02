@@ -125,12 +125,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         [message.parentMessageId]: parentMessages
       };
     });
-    
-    // If we're viewing this thread, update the thread messages
-    if (activeThread && activeThread.id === message.parentMessageId) {
-      fetchThreadMessages(message.parentMessageId);
-    }
-  }, [activeThread]);
+  }, []);
   
   const handleNewChannel = useCallback((channel: Channel) => {
     setChannels(prevChannels => [...prevChannels, channel]);
@@ -139,8 +134,8 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // API URL
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
   
-  // API calls
-  const fetchChannels = async () => {
+  // API calls - memoized to prevent infinite rerenders
+  const fetchChannels = useCallback(async () => {
     setLoadingChannels(true);
     try {
       const response = await axios.get(`${API_URL}/api/channels`);
@@ -155,9 +150,11 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoadingChannels(false);
     }
-  };
+  }, [activeChannel, setActiveChannel]);
   
-  const fetchMessages = async (channelId: number) => {
+  const fetchMessages = useCallback(async (channelId: number) => {
+    if (!channelId) return;
+    
     setLoadingMessages(true);
     try {
       const response = await axios.get(`${API_URL}/api/channels/${channelId}/messages`);
@@ -170,9 +167,11 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoadingMessages(false);
     }
-  };
+  }, []);
   
-  const fetchThreadMessages = async (messageId: number) => {
+  const fetchThreadMessages = useCallback(async (messageId: number) => {
+    if (!messageId) return;
+    
     setLoadingThreadMessages(true);
     try {
       const response = await axios.get(`${API_URL}/api/messages/${messageId}/thread`);
@@ -185,9 +184,9 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoadingThreadMessages(false);
     }
-  };
+  }, []);
   
-  const sendMessage = async (content: string, channelId: number, threadParentId?: number) => {
+  const sendMessage = useCallback(async (content: string, channelId: number, threadParentId?: number) => {
     if (!currentUser) return;
     
     try {
@@ -213,7 +212,7 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch (error) {
       console.error('Error sending message:', error);
     }
-  };
+  }, [currentUser, fetchMessages, fetchThreadMessages]);
   
   // Context value
   const value = {

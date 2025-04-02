@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { useTeamChat } from '../../contexts/TeamChatContext';
 import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
@@ -13,16 +13,25 @@ const MessageList: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // Memoize the activeChannel.id dependency
+  const channelId = activeChannel?.id;
+  
   useEffect(() => {
-    if (activeChannel) {
-      fetchMessages(activeChannel.id);
+    if (channelId) {
+      fetchMessages(channelId);
     }
-  }, [activeChannel, fetchMessages]);
+  }, [channelId, fetchMessages]);
+  
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
   
   useEffect(() => {
     // Scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, activeChannel]);
+    if (channelId && messages[channelId]) {
+      scrollToBottom();
+    }
+  }, [channelId, messages, scrollToBottom]);
   
   if (!activeChannel) {
     return (

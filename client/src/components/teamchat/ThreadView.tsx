@@ -12,11 +12,14 @@ const ThreadView: React.FC = () => {
     loadingThreadMessages 
   } = useTeamChat();
   
+  // Memoize the thread ID to prevent unnecessary re-fetches
+  const threadId = activeThread?.id;
+  
   useEffect(() => {
-    if (activeThread) {
-      fetchThreadMessages(activeThread.id);
+    if (threadId) {
+      fetchThreadMessages(threadId);
     }
-  }, [activeThread, fetchThreadMessages]);
+  }, [threadId, fetchThreadMessages]);
   
   if (!activeThread) {
     return null;

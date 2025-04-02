@@ -8,10 +8,17 @@ const UserSelector: React.FC = () => {
   const { currentUser, setCurrentUser } = useTeamChat();
   
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchUsers = async () => {
+      if (!isMounted) return;
+      
       try {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
         const response = await axios.get(`${API_URL}/api/users`);
+        
+        if (!isMounted) return;
+        
         setUsers(response.data);
         
         // Set first non-AI user as current user if none selected
@@ -24,12 +31,19 @@ const UserSelector: React.FC = () => {
       } catch (error) {
         console.error('Error fetching users:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     
     fetchUsers();
-  }, [currentUser, setCurrentUser]);
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - only fetch users once
   
   const handleUserChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const userId = parseInt(e.target.value);

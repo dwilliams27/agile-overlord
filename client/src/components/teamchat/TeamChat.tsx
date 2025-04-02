@@ -8,9 +8,18 @@ import UserSelector from './UserSelector';
 const TeamChatContent: React.FC = () => {
   const { activeThread, fetchChannels } = useTeamChat();
   
+  // Only fetch channels on mount
   useEffect(() => {
-    fetchChannels();
-  }, [fetchChannels]);
+    // We only want to fetch channels once on component mount
+    let isMounted = true;
+    if (isMounted) {
+      fetchChannels();
+    }
+    return () => {
+      isMounted = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   return (
     <div className="h-full flex flex-col">
