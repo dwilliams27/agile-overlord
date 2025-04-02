@@ -13,13 +13,13 @@ const Dashboard: React.FC = () => {
             Ready
           </div>
         </Link>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-4">Jira</h2>
+        <Link to="/tasklord" className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow">
+          <h2 className="text-xl font-semibold mb-4">TaskLord</h2>
           <p className="text-gray-600 mb-4">Ticket management system</p>
-          <div className="bg-gray-100 text-gray-800 inline-block px-3 py-1 rounded text-sm font-medium">
-            Coming soon
+          <div className="bg-blue-100 text-blue-800 inline-block px-3 py-1 rounded text-sm font-medium">
+            Ready
           </div>
-        </div>
+        </Link>
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">GitHub</h2>
           <p className="text-gray-600 mb-4">Code repository and PR reviews</p>

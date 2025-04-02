@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import TeamChat from './components/teamchat/TeamChat'
+import TaskLord from './pages/TaskLord'
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/teamchat" element={<TeamChat />} />
+        <Route path="/tasklord" element={<TaskLord />} />
       </Routes>
     </div>
   )
