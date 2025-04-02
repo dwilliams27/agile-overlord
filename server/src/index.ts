@@ -5,6 +5,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import dotenv from 'dotenv';
 import routes from './routes';
 import db from './utils/db';
+import initDatabase from './utils/initDb';
 import { AgentManager } from './services/agents/agent.manager';
 import logger from './utils/logger';
 
@@ -181,6 +182,11 @@ server.listen(PORT, async () => {
   logger.info(`Server running on port ${PORT}`);
   
   try {
+    // Initialize database tables
+    logger.info('Initializing database tables');
+    await initDatabase();
+    logger.info('Database tables initialized successfully');
+    
     // Initialize database with seed data
     logger.info('Seeding initial data');
     await seedInitialData();

@@ -28,13 +28,25 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ onClose }) => {
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
         const response = await axios.get(`${API_URL}/api/users`);
         setUsers(response.data);
+        
+        // Log current state
+        console.log('Current user in modal:', currentUser);
+        console.log('Available users:', response.data);
+        
+        // If currentUser is not set, try to get the first non-AI user
+        if (!currentUser && response.data.length > 0) {
+          const firstHumanUser = response.data.find((user: User) => !user.isAI);
+          if (firstHumanUser) {
+            console.log('Setting current user to first human user:', firstHumanUser);
+          }
+        }
       } catch (error) {
         console.error('Error fetching users:', error);
       }
     };
     
     fetchUsers();
-  }, []);
+  }, [currentUser]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -46,11 +58,30 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ onClose }) => {
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formValues.title || !currentUser) return;
+    console.log('Form submitted', { formValues, currentUser });
+    
+    if (!formValues.title) {
+      console.error('Title is required');
+      return;
+    }
+    
+    if (!currentUser) {
+      console.error('Current user is not set');
+      return;
+    }
     
     setLoading(true);
     try {
-      await createTicket({
+      console.log('Creating ticket with:', {
+        title: formValues.title,
+        status: formValues.status,
+        priority: formValues.priority,
+        type: formValues.type,
+        assigneeId: formValues.assigneeId ? parseInt(formValues.assigneeId) : null,
+        reporterId: currentUser.id,
+      });
+      
+      const ticket = await createTicket({
         title: formValues.title,
         description: formValues.description,
         status: formValues.status,
@@ -63,9 +94,11 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ onClose }) => {
         sprintId: null
       });
       
+      console.log('Ticket created successfully:', ticket);
       onClose();
     } catch (error) {
       console.error('Error creating ticket:', error);
+      alert('Error creating ticket: ' + (error.response?.data?.error || error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }

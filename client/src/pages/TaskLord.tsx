@@ -2,11 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import BoardView from '../components/tasklord/BoardView';
-import { TaskLordProvider } from '../contexts/TaskLordContext';
+import { TaskLordProvider, useTaskLord } from '../contexts/TaskLordContext';
 import CreateTicketModal from '../components/tasklord/CreateTicketModal';
+import { User } from '../contexts/TeamChatContext';
 
 const TaskLordContent: React.FC = () => {
   const [showCreateTicket, setShowCreateTicket] = useState(false);
+  const { setCurrentUser, currentUser } = useTaskLord();
+  
+  useEffect(() => {
+    // Fetch the first human user and set as current user
+    const fetchAndSetUser = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        const response = await axios.get(`${API_URL}/api/users`);
+        const users = response.data;
+        
+        // Find the human user (Big Boss Man)
+        const humanUser = users.find((user: User) => !user.isAI);
+        
+        if (humanUser && !currentUser) {
+          console.log('Setting current user to:', humanUser);
+          setCurrentUser(humanUser);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    };
+    
+    if (!currentUser) {
+      fetchAndSetUser();
+    }
+  }, [currentUser, setCurrentUser]);
   
   const openCreateTicket = () => {
     setShowCreateTicket(true);
