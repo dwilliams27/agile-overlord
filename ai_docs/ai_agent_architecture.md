@@ -177,21 +177,42 @@ interface AgentActivity {
 
 ### Context Types
 
-1. **System Context**: Defines the agent's personality, role, and capabilities
-2. **Conversation Context**: Recent messages in the channel
+1. **System Context**: Defines the agent's personality, role, and human-like behaviors
+2. **Conversation Context**: Recent messages in the channel or thread
 3. **Project Context**: Relevant code, tickets, and documentation
 4. **Task Context**: Specific task the agent is working on
 
 ### Context Building Process
 
-1. Start with system context (personality, role, capabilities)
-2. Add relevant conversation history
-3. Include project-specific context related to the current task
-4. Add any specific instructions for the current interaction
-5. Apply context window management techniques if needed:
+1. Start with system context (personality traits, role, and human-like behavior guidance)
+2. Add specific context based on whether in a channel or thread conversation
+3. Include relevant conversation history with proper formatting
+4. Add human-like communication directives to prevent AI-like patterns
+5. Incorporate any specific instructions for the current interaction
+6. Apply context window management techniques if needed:
    - Summarization for long histories
    - Relevance filtering based on the current task
    - Token counting to avoid exceeding limits
+
+### Human-like Behavior Guidelines
+
+The system employs multiple layers of context to ensure natural, human-like communication:
+
+1. **Anti-pattern instructions**: Explicit guidance to avoid AI-like patterns such as:
+   - Service-oriented endings ("Let me know if you need anything else")
+   - Self-referential statements about roles ("As a designer...")
+   - Excessive helpfulness or formal tone
+   - Structured, numbered/bulleted responses
+
+2. **Pro-human behavior guidance**: Instructions to emulate real human communication:
+   - Occasional brevity or terseness
+   - Natural emotion expression
+   - Casual language and contractions
+   - Direct message starts and natural endings
+   - References to shared work history
+   - Varied tone and formality
+
+3. **Thread vs. Channel Context**: Different contextual guidelines based on conversation type, with thread responses being more focused and direct
 
 ## Integration with External LLMs
 
@@ -249,13 +270,24 @@ Similar integration methods will be implemented for Anthropic's Claude and Googl
 
 ## Agent Behavior Flow
 
-1. **Trigger**: Agent activity is triggered by scheduler or external event
-2. **Context Building**: System builds appropriate context for the task
-3. **LLM Call**: Context is sent to the external LLM
-4. **Tool Selection**: LLM decides whether to use tools or provide text response
-5. **Tool Execution**: If tools are selected, they are executed
-6. **Response Processing**: Results are processed and stored
-7. **State Update**: Agent's state is updated based on activity
+1. **Trigger**: Agent activity is triggered by scheduler or incoming human message
+2. **Thread Detection**: System determines if message is in a channel or thread
+   - For thread messages, checks if the 10-message limit has been reached
+   - For threads, typically only one agent is selected to respond
+   - For channel messages, 1-2 random agents are selected to respond
+3. **Context Building**: System builds appropriate context for the task
+   - Includes human-like behavior guidelines
+   - Provides different context based on thread or channel message
+   - Formats conversation history to emphasize content over metadata
+4. **LLM Call**: Context is sent to the external LLM with tool definitions
+5. **Tool Selection**: LLM decides whether to use tools or provide text response
+6. **Tool Execution**: If tools are selected, they are executed
+   - The MessageTool handles both channel and thread messages
+   - Thread messages include the parent message ID for proper threading
+7. **Response Processing**: Results are processed and stored
+   - Emits appropriate Socket.IO events (message:new or thread:new)
+   - Includes full user information with messages
+8. **State Update**: Agent's state is updated based on activity
 
 ## Implementation Plan
 

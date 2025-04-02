@@ -1,6 +1,6 @@
 import { Agent, AgentConfig } from './agent';
 import UserModel from '../../models/User';
-import MessageModel from '../../models/Message';
+import MessageModel, { Message } from '../../models/Message';
 import ChannelModel from '../../models/Channel';
 import logger from '../../utils/logger';
 
@@ -159,10 +159,18 @@ export class AgentManager {
   /**
    * Handle message activity for an agent
    */
-  private async handleMessageActivity(agent: Agent, context: { channelId: number }): Promise<void> {
+  private async handleMessageActivity(agent: Agent, context: { 
+    channelId: number;
+    messageId?: number;
+    threadParentId?: number | null;
+  }): Promise<void> {
     try {
-      const { channelId } = context;
-      logger.info(`Handling message activity for agent ${agent.name} in channel ${channelId}`);
+      const { channelId, messageId, threadParentId } = context;
+      logger.info(`Handling message activity for agent ${agent.name} in channel ${channelId}`, {
+        messageId,
+        threadParentId,
+        isThreadReply: !!threadParentId
+      });
       
       // Get channel and recent messages
       const channel = await ChannelModel.getById(channelId);
@@ -173,14 +181,79 @@ export class AgentManager {
       
       logger.info(`Found channel ${channel.name} (ID: ${channel.id})`);
       
-      const recentMessages = await MessageModel.getByChannelId(channelId, 10);
-      logger.info(`Retrieved ${recentMessages.length} recent messages from channel`, {
-        messageIds: recentMessages.map(m => m.id)
-      });
+      let recentMessages = [];
+      let contextualPrompt = '';
+      
+      // Handle thread conversations differently from channel messages
+      if (threadParentId) {
+        // Get the parent message and thread messages
+        const parentMessage = await MessageModel.getById(threadParentId);
+        if (!parentMessage) {
+          logger.error(`Thread parent message with ID ${threadParentId} not found`);
+          throw new Error(`Thread parent message with ID ${threadParentId} not found`);
+        }
+        
+        // Get all messages in this thread
+        const threadMessages = await MessageModel.getThreadMessages(threadParentId);
+        
+        // Combine parent message and thread replies for context
+        recentMessages = [parentMessage, ...threadMessages];
+        
+        logger.info(`Retrieved thread conversation with ${recentMessages.length} messages`, {
+          threadParentId,
+          messageIds: recentMessages.map(m => m.id)
+        });
+        
+        contextualPrompt = `You're replying to a thread from ${parentMessage.user?.name || 'Unknown'} who said: "${parentMessage.content}"
+
+YOU ARE A HUMAN COWORKER, NOT AN AI. This is absolutely critical:
+
+- NEVER end your message with "Let me know if you need anything else" or other customer service phrases
+- NEVER use the phrases "happy to help", "feel free to ask", or similar AI-like phrasing
+- Keep your response direct, sometimes brief, like a busy colleague would
+- End your messages naturally without open-ended offers of further assistance
+- Occasionally show some mild personality or emotion in your responses
+- Write in a more casual way, as a real human colleague would in a workplace chat
+
+Technical note: Use sendMessage with replyToMessageId=${threadParentId} for your response.`;
+      } else {
+        // Get recent messages from the channel
+        recentMessages = await MessageModel.getByChannelId(channelId, 10);
+        
+        logger.info(`Retrieved ${recentMessages.length} recent messages from channel`, {
+          messageIds: recentMessages.map(m => m.id)
+        });
+        
+        contextualPrompt = `You're in a workplace chat channel.
+
+YOU ARE A HUMAN COWORKER NAMED ${agent.name}, NOT AN AI. This is absolutely critical:
+
+- NEVER end messages with AI-like phrases such as "Let me know if you need anything else" or "Feel free to reach out"
+- NEVER offer assistance or help in an AI-like manner
+- NEVER sound like customer service
+- Be more casual and conversational, occasionally brief
+- Show some personality quirks and occasional mild emotions
+- End messages naturally or sometimes abruptly like busy humans do
+- Don't be excessively polite or overly careful with wording`;
+        
+        // If we have a specific message ID to respond to, highlight it
+        if (messageId) {
+          const targetMessage = recentMessages.find(m => m.id === messageId);
+          if (targetMessage) {
+            contextualPrompt += `\n\nYou're responding to this message from ${targetMessage.user?.name || 'Unknown'}: "${targetMessage.content}"
+
+Respond as you would to a colleague you've worked with for years. Be direct and human-like.
+            
+Technical note: Use the sendMessage tool with replyToMessageId=${messageId} to create a thread reply.`;
+          }
+        } else {
+          contextualPrompt += '\n\nYou noticed some activity in this channel that might be relevant to your work. Jump in naturally with a human-like message, not an AI-like response.';
+        }
+      }
       
       // Generate response
       logger.info(`Generating response for agent ${agent.name}`);
-      const response = await agent.takeAction(channelId, recentMessages);
+      const response = await agent.takeAction(channelId, recentMessages, contextualPrompt, threadParentId);
       logger.info(`Agent ${agent.name} response received`, {
         hasCompletion: !!response.completion,
         toolCalls: response.toolCalls
@@ -197,28 +270,25 @@ export class AgentManager {
           channelId,
           userId: agent.id,
           content: response.completion,
-          threadParentId: null
+          threadParentId: threadParentId || null
         });
         
         logger.info(`Created message for agent ${agent.name}`, { messageId: message.id });
         
+        // Get the full message with user data
+        const messageWithUser = await MessageModel.getById(message.id);
+        
         // Emit the message via Socket.IO
         if (this.io) {
-          const messageWithUser = {
-            ...message, 
-            user: { 
-              id: agent.id, 
-              name: agent.name,
-              role: agent.role,
-              isAI: true
-            }
-          };
-          
           logger.info(`Emitting message:new event for agent ${agent.name}'s message`, {
             messageId: message.id
           });
           
-          this.io.emit('message:new', messageWithUser);
+          if (threadParentId) {
+            this.io.emit('thread:new', { ...messageWithUser, parentMessageId: threadParentId });
+          } else {
+            this.io.emit('message:new', messageWithUser);
+          }
         } else {
           logger.warn(`Socket.IO instance not available, can't emit message:new event`);
         }
@@ -240,6 +310,7 @@ export class AgentManager {
       messageId: message.id,
       channelId: message.channelId,
       userId: message.userId,
+      threadParentId: message.threadParentId,
       user: message.user ? { 
         id: message.user.id, 
         name: message.user.name, 
@@ -251,28 +322,83 @@ export class AgentManager {
     if (message.user && !message.user.isAI) {
       logger.info('Message is from human user, triggering agent response');
       
-      // Find agents that should respond
-      const agents = this.getRandomAgentsToRespond(message.channelId);
-      logger.info(`Selected ${agents.length} agents to respond`, {
-        agentIds: agents.map(a => a.id),
-        agentNames: agents.map(a => a.name)
-      });
+      // Check if this is a thread message
+      const isThreadMessage = !!message.threadParentId || !!message.parentMessageId;
       
-      // Schedule responses with some delay for natural conversation
-      for (const [index, agent] of agents.entries()) {
-        // Add some delay between agent responses (1-5 seconds between each)
-        const delay = 1000 + (index * 2000) + (Math.random() * 2000);
+      if (isThreadMessage) {
+        logger.info('Message is a thread reply', { 
+          threadParentId: message.threadParentId || message.parentMessageId 
+        });
         
-        logger.info(`Scheduling response from agent ${agent.name} with delay ${delay}ms`);
+        // Count existing messages in this thread to check limit
+        const threadId = message.threadParentId || message.parentMessageId;
+        const threadMessages = await MessageModel.getThreadMessages(threadId);
         
-        setTimeout(() => {
-          logger.info(`Executing scheduled response from agent ${agent.name}`);
-          this.executeAgentActivity(agent, {
-            type: 'message',
-            context: { channelId: message.channelId },
-            schedule: { immediate: true }
-          });
-        }, delay);
+        // Limit thread responses to 10 messages
+        if (threadMessages.length >= 10) {
+          logger.info(`Thread has reached the limit of 10 messages, not triggering agent responses`);
+          return;
+        }
+        
+        // Find agents that should respond to thread
+        const agents = this.getRandomAgentsToRespond(message.channelId, 1); // Limit to 1 agent for threads
+        
+        logger.info(`Selected ${agents.length} agents to respond to thread`, {
+          agentIds: agents.map(a => a.id),
+          agentNames: agents.map(a => a.name)
+        });
+        
+        // Schedule responses with some delay for natural conversation
+        for (const [index, agent] of agents.entries()) {
+          // Add some delay between agent responses (1-5 seconds between each)
+          const delay = 1000 + (index * 2000) + (Math.random() * 2000);
+          
+          logger.info(`Scheduling thread response from agent ${agent.name} with delay ${delay}ms`);
+          
+          setTimeout(() => {
+            logger.info(`Executing scheduled thread response from agent ${agent.name}`);
+            this.executeAgentActivity(agent, {
+              type: 'message',
+              context: { 
+                channelId: message.channelId,
+                messageId: message.id,
+                threadParentId: threadId
+              },
+              schedule: { immediate: true }
+            });
+          }, delay);
+        }
+      } else {
+        // This is a top-level channel message
+        logger.info('Message is a top-level channel message');
+        
+        // Find agents that should respond
+        const agents = this.getRandomAgentsToRespond(message.channelId);
+        logger.info(`Selected ${agents.length} agents to respond`, {
+          agentIds: agents.map(a => a.id),
+          agentNames: agents.map(a => a.name)
+        });
+        
+        // Schedule responses with some delay for natural conversation
+        for (const [index, agent] of agents.entries()) {
+          // Add some delay between agent responses (1-5 seconds between each)
+          const delay = 1000 + (index * 2000) + (Math.random() * 2000);
+          
+          logger.info(`Scheduling response from agent ${agent.name} with delay ${delay}ms`);
+          
+          setTimeout(() => {
+            logger.info(`Executing scheduled response from agent ${agent.name}`);
+            this.executeAgentActivity(agent, {
+              type: 'message',
+              context: { 
+                channelId: message.channelId,
+                messageId: message.id,
+                threadParentId: null
+              },
+              schedule: { immediate: true }
+            });
+          }, delay);
+        }
       }
     } else {
       logger.info('Message is not from a human user or missing user info, ignoring');
@@ -282,11 +408,11 @@ export class AgentManager {
   /**
    * Get a random subset of agents to respond to a message
    */
-  private getRandomAgentsToRespond(channelId: number): Agent[] {
+  private getRandomAgentsToRespond(channelId: number, maxResponders?: number): Agent[] {
     const allAgents = this.getAllAgents();
     
-    // For now, randomly select 1-2 agents to respond
-    const numResponders = Math.floor(Math.random() * 2) + 1;
+    // For now, randomly select 1-2 agents to respond if maxResponders not specified
+    const numResponders = maxResponders || (Math.floor(Math.random() * 2) + 1);
     
     // Shuffle and take the first numResponders
     return allAgents

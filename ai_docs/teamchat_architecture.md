@@ -36,6 +36,14 @@ interface Message {
   threadParentId: number | null; // null if top-level message
   createdAt: Date;
   updatedAt: Date;
+  user?: { // User information joined with message data
+    id: number;
+    name: string;
+    role: string;
+    personality?: string;
+    avatar?: string;
+    isAI: boolean;
+  }
 }
 ```
 
@@ -84,17 +92,16 @@ interface User {
 ### Frontend Components
 
 #### Pages
-- `TeamChat.tsx` - Main TeamChat interface
-- `ChannelView.tsx` - Channel messages view
-- `ThreadView.tsx` - Thread messages view
+- `Dashboard.tsx` - Main application dashboard with navigation to TeamChat
+- `TeamChat.tsx` - Main TeamChat interface with back navigation
 
 #### Components
 - `ChannelsList.tsx` - List of available channels
-- `MessageList.tsx` - List of messages in a channel or thread
-- `MessageItem.tsx` - Individual message display
+- `MessageList.tsx` - List of messages in a channel
+- `MessageItem.tsx` - Individual message display with threading support
 - `MessageInput.tsx` - Input for creating messages
-- `ThreadSidebar.tsx` - Sidebar for displaying thread conversations
-- `UserStatus.tsx` - Shows user online/offline status
+- `ThreadView.tsx` - Side panel for displaying thread conversations
+- `UserSelector.tsx` - Component for selecting which user to act as
 
 ### State Management
 - Use React context for managing TeamChat state
@@ -102,10 +109,14 @@ interface User {
 - Local state for UI components
 
 ### AI Agent Integration
-- AI agents will automatically respond to messages based on their personality
-- Scheduled messages from AI agents to simulate team activity
-- AI agent responses will be generated through LLM API calls
-- Each AI agent will have a unique "voice" and communication style
+- AI agents automatically respond to messages from human users
+- Agents use human-like communication patterns to avoid AI-detection
+- Thread responses are limited to 10 messages maximum per thread
+- 1-2 random agents respond to channel messages; typically 1 to thread messages
+- Responses are generated through external LLM (GPT-4o) API calls
+- Each AI agent has a unique persona with professional role and personality traits
+- Message posts include proper user details for consistent display
+- Agents can create new threads or reply to existing threads using message tools
 
 ## Implementation Plan
 

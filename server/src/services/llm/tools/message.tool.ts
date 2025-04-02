@@ -100,18 +100,11 @@ export class MessageTool implements Tool {
         isThreadMessage: !!parentMessageId 
       });
       
+      // Get message with user data
+      const messageWithUser = await MessageModel.getById(message.id);
+      
       // Emit socket event for the new message
       if (io) {
-        const messageWithUser = {
-          ...message,
-          user: {
-            id: user.id,
-            name: user.name,
-            role: user.role,
-            isAI: user.isAI
-          }
-        };
-        
         if (parentMessageId) {
           // Emit thread:new event
           logger.info(`Emitting thread:new event for message ${message.id}`);

@@ -45,14 +45,25 @@ export interface Message {
   threadParentId: number | null;
   createdAt: Date;
   updatedAt: Date;
+  user?: {
+    id: number;
+    name: string;
+    role: string;
+    personality?: string;
+    avatar?: string;
+    isAI: boolean;
+  };
 }
 
 class MessageModel {
   async getByChannelId(channelId: number, limit = 50, offset = 0): Promise<Message[]> {
     const messages = await dbAll(
-      `SELECT * FROM messages 
-       WHERE channel_id = ? AND thread_parent_id IS NULL
-       ORDER BY created_at ASC LIMIT ? OFFSET ?`,
+      `SELECT m.*, u.id as user_id, u.name as user_name, u.role as user_role, 
+              u.personality as user_personality, u.avatar as user_avatar, u.is_ai as user_is_ai
+       FROM messages m
+       LEFT JOIN users u ON m.user_id = u.id
+       WHERE m.channel_id = ? AND m.thread_parent_id IS NULL
+       ORDER BY m.created_at ASC LIMIT ? OFFSET ?`,
       [channelId, limit, offset]
     );
     return messages.map(this.mapMessageFromDB);
@@ -60,16 +71,26 @@ class MessageModel {
 
   async getThreadMessages(parentMessageId: number): Promise<Message[]> {
     const messages = await dbAll(
-      `SELECT * FROM messages 
-       WHERE thread_parent_id = ? 
-       ORDER BY created_at ASC`,
+      `SELECT m.*, u.id as user_id, u.name as user_name, u.role as user_role, 
+              u.personality as user_personality, u.avatar as user_avatar, u.is_ai as user_is_ai
+       FROM messages m
+       LEFT JOIN users u ON m.user_id = u.id
+       WHERE m.thread_parent_id = ? 
+       ORDER BY m.created_at ASC`,
       [parentMessageId]
     );
     return messages.map(this.mapMessageFromDB);
   }
 
   async getById(id: number): Promise<Message | null> {
-    const message = await dbGet('SELECT * FROM messages WHERE id = ?', [id]);
+    const message = await dbGet(
+      `SELECT m.*, u.id as user_id, u.name as user_name, u.role as user_role, 
+              u.personality as user_personality, u.avatar as user_avatar, u.is_ai as user_is_ai
+       FROM messages m
+       LEFT JOIN users u ON m.user_id = u.id
+       WHERE m.id = ?`,
+      [id]
+    );
     return message ? this.mapMessageFromDB(message) : null;
   }
 
@@ -100,7 +121,7 @@ class MessageModel {
 
   // Helper method to map database object to Message interface
   private mapMessageFromDB(dbMessage: any): Message {
-    return {
+    const message: any = {
       id: dbMessage.id,
       channelId: dbMessage.channel_id,
       userId: dbMessage.user_id,
@@ -109,6 +130,20 @@ class MessageModel {
       createdAt: new Date(dbMessage.created_at),
       updatedAt: new Date(dbMessage.updated_at)
     };
+    
+    // Add user information if available
+    if (dbMessage.user_name) {
+      message.user = {
+        id: dbMessage.user_id,
+        name: dbMessage.user_name,
+        role: dbMessage.user_role,
+        personality: dbMessage.user_personality,
+        avatar: dbMessage.user_avatar,
+        isAI: Boolean(dbMessage.user_is_ai)
+      };
+    }
+    
+    return message;
   }
 }
 

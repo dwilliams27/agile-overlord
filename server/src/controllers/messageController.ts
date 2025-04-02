@@ -71,10 +71,12 @@ export const createMessage = async (req: Request, res: Response) => {
       threadParentId: null
     });
     
+    // Get message with user data
+    const messageWithUser = await MessageModel.getById(newMessage.id);
+    
     // Emit a socket event for the new message
     const io = req.app.get('io');
     if (io) {
-      const messageWithUser = { ...newMessage, user };
       io.emit('message:new', messageWithUser);
       
       // Also directly trigger the agent manager to respond to this message
@@ -122,11 +124,13 @@ export const createThreadMessage = async (req: Request, res: Response) => {
       threadParentId: messageId
     });
     
+    // Get message with user data
+    const messageWithUser = await MessageModel.getById(newThreadMessage.id);
+    
     // Emit a socket event for the new thread message
     const io = req.app.get('io');
     if (io) {
-      const messageWithUser = { ...newThreadMessage, parentMessageId: messageId, user };
-      io.emit('thread:new', messageWithUser);
+      io.emit('thread:new', { ...messageWithUser, parentMessageId: messageId });
       
       // Also directly trigger the agent manager to respond to this message
       const agentManager = req.app.get('agentManager');
