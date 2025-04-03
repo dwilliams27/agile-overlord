@@ -30,7 +30,7 @@ export interface Message {
   user?: User; // User object may be included in API responses
 }
 
-interface TeamChatContextType {
+interface FoolsForumContextType {
   currentUser: User | null;
   channels: Channel[];
   messages: Record<number, Message[]>; // Keyed by channel ID
@@ -50,13 +50,13 @@ interface TeamChatContextType {
 }
 
 // Create context
-const TeamChatContext = createContext<TeamChatContextType | undefined>(undefined);
+const FoolsForumContext = createContext<FoolsForumContextType | undefined>(undefined);
 
 // Socket instance
 let socket: Socket;
 
 // Provider component
-export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const FoolsForumProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [messages, setMessages] = useState<Record<number, Message[]>>({});
@@ -235,17 +235,17 @@ export const TeamChatProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
   
   return (
-    <TeamChatContext.Provider value={value}>
+    <FoolsForumContext.Provider value={value}>
       {children}
-    </TeamChatContext.Provider>
+    </FoolsForumContext.Provider>
   );
 };
 
 // Custom hook for using the context
-export const useTeamChat = () => {
-  const context = useContext(TeamChatContext);
+export const useFoolsForum = () => {
+  const context = useContext(FoolsForumContext);
   if (context === undefined) {
-    throw new Error('useTeamChat must be used within a TeamChatProvider');
+    throw new Error('useFoolsForum must be used within a FoolsForumProvider');
   }
   return context;
 };

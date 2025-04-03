@@ -26,21 +26,21 @@ const BoardView: React.FC = () => {
   
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-gray-50">
+      <div className="h-full flex items-center justify-center bg-gray-900">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading board...</p>
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-red-600 border-t-transparent mx-auto"></div>
+          <p className="mt-3 text-gray-400 font-mono uppercase tracking-wider">INITIALIZING SYSTEM...</p>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="h-full flex bg-gray-50">
+    <div className="h-full flex bg-gray-900">
       <div className={`flex-1 flex overflow-x-auto p-4 ${selectedTicket ? 'pr-0' : ''}`}>
         {/* TODO Column */}
         <KanbanColumn 
-          title="To Do" 
+          title="AWAITING ASSIGNMENT" 
           tickets={board[TicketStatus.TODO]} 
           status={TicketStatus.TODO}
           widthClass={columnWidthClass}
@@ -48,7 +48,7 @@ const BoardView: React.FC = () => {
         
         {/* IN PROGRESS Column */}
         <KanbanColumn 
-          title="In Progress" 
+          title="UNDER EXECUTION" 
           tickets={board[TicketStatus.IN_PROGRESS]} 
           status={TicketStatus.IN_PROGRESS}
           widthClass={columnWidthClass}
@@ -56,7 +56,7 @@ const BoardView: React.FC = () => {
         
         {/* REVIEW Column */}
         <KanbanColumn 
-          title="Review" 
+          title="PENDING INSPECTION" 
           tickets={board[TicketStatus.REVIEW]} 
           status={TicketStatus.REVIEW}
           widthClass={columnWidthClass}
@@ -64,7 +64,7 @@ const BoardView: React.FC = () => {
         
         {/* DONE Column */}
         <KanbanColumn 
-          title="Done" 
+          title="DIRECTIVE COMPLETED" 
           tickets={board[TicketStatus.DONE]} 
           status={TicketStatus.DONE}
           widthClass={columnWidthClass}
@@ -72,7 +72,7 @@ const BoardView: React.FC = () => {
         
         {/* BACKLOG Column */}
         <KanbanColumn 
-          title="Backlog" 
+          title="LOW PRIORITY QUEUE" 
           tickets={board[TicketStatus.BACKLOG]} 
           status={TicketStatus.BACKLOG}
           widthClass={columnWidthClass}
@@ -81,7 +81,7 @@ const BoardView: React.FC = () => {
       
       {/* Ticket Details Sidebar */}
       {selectedTicket && (
-        <div className="w-1/3 border-l border-gray-200 bg-white overflow-auto">
+        <div className="w-1/3 border-l border-gray-700 bg-gray-800 overflow-auto shadow-xl">
           <TicketDetailsSidebar 
             ticket={selectedTicket}
             onClose={() => setSelectedTicket(null)}

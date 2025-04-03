@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { io, Socket } from 'socket.io-client';
-import { User } from './TeamChatContext';
+import { User } from './FoolsForumContext';
 
 // Define ticket types
 export enum TicketStatus {

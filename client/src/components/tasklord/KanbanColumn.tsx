@@ -14,16 +14,16 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, tickets, status, wid
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.add('bg-blue-50');
+    e.currentTarget.classList.add('bg-red-900/20');
   };
   
   const handleDragLeave = (e: React.DragEvent) => {
-    e.currentTarget.classList.remove('bg-blue-50');
+    e.currentTarget.classList.remove('bg-red-900/20');
   };
   
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    e.currentTarget.classList.remove('bg-blue-50');
+    e.currentTarget.classList.remove('bg-red-900/20');
     
     const ticketId = e.dataTransfer.getData('ticketId');
     if (ticketId) {
@@ -37,31 +37,31 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ title, tickets, status, wid
   };
   
   const columnColors = {
-    [TicketStatus.TODO]: 'bg-gray-100',
-    [TicketStatus.IN_PROGRESS]: 'bg-blue-50',
-    [TicketStatus.REVIEW]: 'bg-yellow-50',
-    [TicketStatus.DONE]: 'bg-green-50',
-    [TicketStatus.BACKLOG]: 'bg-gray-50'
+    [TicketStatus.TODO]: 'bg-gray-800 border-t-red-700',
+    [TicketStatus.IN_PROGRESS]: 'bg-gray-800 border-t-yellow-700',
+    [TicketStatus.REVIEW]: 'bg-gray-800 border-t-purple-700',
+    [TicketStatus.DONE]: 'bg-gray-800 border-t-green-700',
+    [TicketStatus.BACKLOG]: 'bg-gray-800 border-t-gray-700'
   };
   
   return (
     <div 
-      className={`${widthClass} min-w-[250px] mx-2 rounded-md ${columnColors[status]} flex flex-col`}
+      className={`${widthClass} min-w-[250px] mx-2 rounded border border-gray-700 shadow-md ${columnColors[status]} flex flex-col border-t-4`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div className="p-3 border-b border-gray-200 flex justify-between items-center">
-        <h3 className="font-medium">{title}</h3>
-        <span className="bg-gray-200 text-gray-700 rounded-full text-xs px-2 py-1">
+      <div className="p-3 border-b border-gray-700 flex justify-between items-center bg-gradient-to-r from-gray-800 to-gray-900">
+        <h3 className="font-bold text-gray-300 uppercase tracking-wide text-xs">{title}</h3>
+        <span className="bg-gray-900 text-gray-400 rounded text-xs px-2 py-1 border border-gray-700">
           {tickets.length}
         </span>
       </div>
       
       <div className="flex-1 p-2 overflow-y-auto">
         {tickets.length === 0 ? (
-          <div className="text-center py-6 text-gray-400 text-sm">
-            No tickets
+          <div className="text-center py-6 text-gray-500 text-xs font-mono uppercase">
+            No active directives
           </div>
         ) : (
           <div className="space-y-2">

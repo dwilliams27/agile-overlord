@@ -3,6 +3,7 @@ import UserModel from '../../models/User';
 import MessageModel, { Message } from '../../models/Message';
 import ChannelModel from '../../models/Channel';
 import logger from '../../utils/logger';
+import agentLogger from '../../utils/agentLogger';
 
 export interface AgentActivity {
   type: 'message' | 'codeReview' | 'ticketUpdate' | 'codeGeneration';
@@ -71,6 +72,18 @@ export class AgentManager {
   createAgent(config: AgentConfig): Agent {
     const agent = new Agent(config);
     this.agents.set(config.id, agent);
+    
+    // Log agent creation
+    agentLogger.logAgentActivity('created', {
+      agentId: agent.id,
+      agentName: agent.name,
+      details: {
+        role: agent.role,
+        personality: agent.personality,
+        capabilities: agent.capabilities
+      }
+    });
+    
     return agent;
   }
   
@@ -355,6 +368,20 @@ Technical note: Use the sendMessage tool with replyToMessageId=${messageId} to c
           
           logger.info(`Scheduling thread response from agent ${agent.name} with delay ${delay}ms`);
           
+          // Log the agent thread response activity
+          agentLogger.logAgentActivity('thread_response', {
+            agentId: agent.id,
+            agentName: agent.name,
+            channelId: message.channelId,
+            messageId: message.id,
+            threadParentId: threadId,
+            details: {
+              responseType: 'thread',
+              userMessage: message.content?.substring(0, 100),
+              responseDelay: delay
+            }
+          });
+          
           setTimeout(() => {
             logger.info(`Executing scheduled thread response from agent ${agent.name}`);
             this.executeAgentActivity(agent, {
@@ -385,6 +412,19 @@ Technical note: Use the sendMessage tool with replyToMessageId=${messageId} to c
           const delay = 1000 + (index * 2000) + (Math.random() * 2000);
           
           logger.info(`Scheduling response from agent ${agent.name} with delay ${delay}ms`);
+          
+          // Log the agent channel response activity
+          agentLogger.logAgentActivity('channel_response', {
+            agentId: agent.id,
+            agentName: agent.name,
+            channelId: message.channelId,
+            messageId: message.id,
+            details: {
+              responseType: 'channel',
+              userMessage: message.content?.substring(0, 100),
+              responseDelay: delay
+            }
+          });
           
           setTimeout(() => {
             logger.info(`Executing scheduled response from agent ${agent.name}`);

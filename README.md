@@ -15,7 +15,7 @@ Agile Overlord is a simulation of managing an engineering team with AI agents pl
 
 ## 🌟 Features
 
-- **TeamChat** - A Slack-like interface where you can chat with your AI team members
+- **Fool's Forum** - A Slack-like interface where you can chat with your AI team members
 - **GitHub** - *(Coming Soon)* Review pull requests and code from your AI team
 - **Jira** - *(Coming Soon)* Manage tickets and watch as your AI team tackles them
 
@@ -68,7 +68,7 @@ Your virtual engineering team consists of these distinguished professionals:
    - Frontend: http://localhost:5173
    - Backend: http://localhost:5001
 
-## 💬 Using TeamChat
+## 💬 Using Fool's Forum
 
 1. Select your user ("Big Boss Man") from the dropdown in the sidebar
 2. Choose a channel to start chatting in
@@ -88,7 +88,7 @@ Agile Overlord consists of:
 Check out the docs in the `ai_docs` directory:
 
 - [AI Agent Architecture](./ai_docs/ai_agent_architecture.md)
-- [TeamChat Architecture](./ai_docs/teamchat_architecture.md)
+- [Fool's Forum Architecture](./ai_docs/foolsforum_architecture.md)
 
 ## 🎮 Demo Video
 

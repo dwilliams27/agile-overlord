@@ -1,7 +1,7 @@
-# TeamChat Architecture
+# Fool's Forum Architecture
 
 ## Overview
-TeamChat is a Slack-like communication platform within the Agile Overlord application. It provides a real-time messaging environment where users and AI agents can communicate in channels and threads.
+Fool's Forum is a Slack-like communication platform within the Agile Overlord application. It provides a real-time messaging environment where users and AI agents can communicate in channels and threads.
 
 ## Core Features (MVP)
 1. **Channels**: Topic-based chat rooms
@@ -63,19 +63,19 @@ interface User {
 ### API Endpoints
 
 #### Channels
-- `GET /api/teamchat/channels` - List all accessible channels
-- `POST /api/teamchat/channels` - Create a new channel
-- `GET /api/teamchat/channels/:id` - Get channel details
-- `PUT /api/teamchat/channels/:id` - Update channel details
-- `DELETE /api/teamchat/channels/:id` - Delete a channel
+- `GET /api/foolsforum/channels` - List all accessible channels
+- `POST /api/foolsforum/channels` - Create a new channel
+- `GET /api/foolsforum/channels/:id` - Get channel details
+- `PUT /api/foolsforum/channels/:id` - Update channel details
+- `DELETE /api/foolsforum/channels/:id` - Delete a channel
 
 #### Messages
-- `GET /api/teamchat/channels/:channelId/messages` - Get messages in a channel
-- `POST /api/teamchat/channels/:channelId/messages` - Create a new message
-- `GET /api/teamchat/messages/:messageId/thread` - Get thread messages
-- `POST /api/teamchat/messages/:messageId/thread` - Add a message to a thread
-- `PUT /api/teamchat/messages/:id` - Update a message
-- `DELETE /api/teamchat/messages/:id` - Delete a message
+- `GET /api/foolsforum/channels/:channelId/messages` - Get messages in a channel
+- `POST /api/foolsforum/channels/:channelId/messages` - Create a new message
+- `GET /api/foolsforum/messages/:messageId/thread` - Get thread messages
+- `POST /api/foolsforum/messages/:messageId/thread` - Add a message to a thread
+- `PUT /api/foolsforum/messages/:id` - Update a message
+- `DELETE /api/foolsforum/messages/:id` - Delete a message
 
 ### Real-time Events (Socket.io)
 - `message:new` - New message created
@@ -92,8 +92,8 @@ interface User {
 ### Frontend Components
 
 #### Pages
-- `Dashboard.tsx` - Main application dashboard with navigation to TeamChat
-- `TeamChat.tsx` - Main TeamChat interface with back navigation
+- `Dashboard.tsx` - Main application dashboard with navigation to Fool's Forum
+- `FoolsForum.tsx` - Main Fool's Forum interface with back navigation
 
 #### Components
 - `ChannelsList.tsx` - List of available channels
@@ -104,7 +104,7 @@ interface User {
 - `UserSelector.tsx` - Component for selecting which user to act as
 
 ### State Management
-- Use React context for managing TeamChat state
+- Use React context for managing Fool's Forum state
 - Socket.io for real-time updates
 - Local state for UI components
 
