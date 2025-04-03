@@ -138,6 +138,9 @@ export const updateTicket = async (req: Request, res: Response) => {
       ? (dueDate ? new Date(dueDate) : null) 
       : undefined;
     
+    // Keep track of assignee change for workflow handling
+    const assigneeChanged = assigneeId !== undefined && assigneeId !== ticket.assigneeId;
+    
     // Update ticket
     const updatedTicket = await TicketModel.update(ticketId, {
       title,
@@ -151,6 +154,14 @@ export const updateTicket = async (req: Request, res: Response) => {
     const io = req.app.get('io');
     if (io) {
       io.emit('ticket:update', updatedTicket);
+    }
+    
+    // Notify the task manager if the assignee changed
+    if (assigneeChanged && assigneeId) {
+      const taskManager = req.app.get('taskManager');
+      if (taskManager) {
+        taskManager.handleTicketAssignment(ticketId, assigneeId);
+      }
     }
     
     res.json(updatedTicket);
@@ -186,6 +197,12 @@ export const updateTicketStatus = async (req: Request, res: Response) => {
         status,
         ticket: updatedTicket
       });
+    }
+    
+    // Notify the task manager about the status change
+    const taskManager = req.app.get('taskManager');
+    if (taskManager) {
+      taskManager.handleTicketStatusChange(ticketId, status as TicketStatus);
     }
     
     res.json(updatedTicket);

@@ -7,10 +7,19 @@ import routes from './routes';
 import db from './utils/db';
 import initDatabase from './utils/initDb';
 import { AgentManager } from './services/agents/agent.manager';
+import { TaskManager } from './services/workflow/task.manager';
 import logger from './utils/logger';
 
 // Load environment variables
 dotenv.config();
+
+// Ensure logs directory exists
+import fs from 'fs';
+import path from 'path';
+const logsDir = path.join(__dirname, '../logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -41,8 +50,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP' });
 });
 
-// Create agent manager instance after Express app is set up
+// Create service instances after Express app is set up
 let agentManager: AgentManager;
+let taskManager: TaskManager;
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -203,15 +213,35 @@ server.listen(PORT, async () => {
     logger.info('Setting IO instance on agent manager');
     agentManager.setIO(io);
     
+    // Create task manager
+    logger.info('Creating task manager instance');
+    taskManager = new TaskManager(agentManager);
+    
+    // Make taskManager available to our routes
+    app.set('taskManager', taskManager);
+    
     // Add a delay to ensure database operations are complete
-    logger.info('Waiting for database operations to complete before initializing agents');
+    logger.info('Waiting for database operations to complete before initializing systems');
     setTimeout(async () => {
       try {
+        // Initialize AI agent system
         logger.info('Initializing AI agent system');
         await agentManager.initialize();
         logger.info('AI agent system initialized successfully');
+        
+        // Set capabilities for agents to work with task workflows
+        logger.info('Adding task capabilities to agents');
+        for (const agent of agentManager.getAllAgents()) {
+          agent.capabilities.push('taskExecution');
+        }
+        
+        // The TaskManager doesn't need explicit initialization as it's stateless
+        // But we'll log that it's ready to use
+        logger.info('Task manager ready for use');
+        
+        logger.info('All systems initialized and ready');
       } catch (error) {
-        logger.error('Failed to initialize AI agent system:', error);
+        logger.error('Failed to initialize systems:', error);
       }
     }, 2000);
   } catch (error) {
